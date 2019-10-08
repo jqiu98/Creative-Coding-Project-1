@@ -15,10 +15,10 @@ function draw() {
 	if (flag) {
 		for (let aCreature of creatures) {
 			aCreature.walk();
-			if (aCreature.x > width+50) {
-				aCreature.x = 0;
+			if (aCreature.position.x > width+50) {
+				aCreature.position.x = 0;
 				startY = random(0, height);
-				aCreature.y = startY;
+				aCreature.position.y = startY;
 				aCreature.addTrail();
 			}
 		}
@@ -33,6 +33,6 @@ function keyPressed() {
 }
 
 function mousePressed() {
-	let aCreature = new Monster(mouseX, mouseY, 144, 130, 233, 255, int(random(2,4)));
+	let aCreature = new Monster(createVector(mouseX, mouseY), color(144, 130, 233, 255), createVector(int(random(2,4)), 0));
 	creatures.push(aCreature);
 }
