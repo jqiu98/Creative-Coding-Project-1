@@ -1,11 +1,9 @@
-let startY;
 let flag;
 let creatures;
 
 function setup() {
-	createCanvas(500, 500);
+	createCanvas(windowWidth-100, windowHeight-100);
 	background(220);
-	startY = height/2;
 	flag = true;
 	creatures = [];
 }
@@ -15,11 +13,10 @@ function draw() {
 	if (flag) {
 		for (let aCreature of creatures) {
 			aCreature.walk();
-			if (aCreature.position.x > width+50) {
-				aCreature.position.x = 0;
-				startY = random(0, height);
-				aCreature.position.y = startY;
-				aCreature.addTrail();
+			if (aCreature.position.x > width+50 || aCreature.position.x < -50 ||
+				aCreature.position.y > height+50 || aCreature.position.y < -50) {
+
+				aCreature.reposition();
 			}
 		}
 	}
@@ -33,6 +30,7 @@ function keyPressed() {
 }
 
 function mousePressed() {
-	let aCreature = new Monster(createVector(mouseX, mouseY), color(144, 130, 233, 255), createVector(int(random(2,4)), 0));
+	let aCreature = new Monster(createVector(mouseX, mouseY), color(144, 130, 233, 255), 
+								createVector(random(0,2), random(0,2)).normalize(), 0, "master");
 	creatures.push(aCreature);
 }
