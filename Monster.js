@@ -1,307 +1,151 @@
-class Monster extends Ghost {
+class Monster extends Ghost { // Inheritance from Ghost
 	constructor(position, velocity, direction, r, g, b, a) {
-		super(position, velocity, direction, r, g, b, a);
+		super(position, velocity, direction, r, g, b, a); // Calls parent constructor
 
-		this.init_velocity = velocity;
-		this.speed = 15;
-		this.rank = 1;
+		this.init_velocity = velocity; // The inital velocity to used as a base for actual velocity
+		this.speed = 10; // Multilier for the velocity
+		this.rank = 1; // Level/Rank of the Monster
 
-		this.updateVelocity();
-		this.updateSize();
+		this.updateVelocity(); // Update the velocity of the monster
+		this.updateSize(); // update the Size of the monster
 
-		this.timestamp = frameCount;
-		this.lap = 0;
-		this.ghost = null;
+		this.timestamp = frameCount; // Time created
+		this.lap = 0; // How many times the monster looped off screen
+		this.ghost = null; // Dependant instance of parent Ghost: Used to help rank up the monster
 
-		this.currTrail = [this.position.copy(), this.position.copy(), this.velocity.copy().mult(2), this.direction];
-		this.allTrail = [];
-		this.allTrail.push(this.currTrail);
+		// Current path of the monster until it loops off screen
+		this.currTrail = [this.position.copy(),  // Start position
+						  this.position.copy(), // End position
+						  this.velocity.copy().mult(1.5), // path's velocity
+						  this.direction]; // Path's direction
+
+		this.allTrail = []; // Array holding all the paths of the monster made thus far
+		this.allTrail.push(this.currTrail); // Adding current path into all path
 	}
 
-	walk() {
-		super.walk();
-		this.currTrail[1].x += this.velocity.x;
-		this.currTrail[1].y += this.velocity.y;
-		if (this.ghost != null) this.updateGhost();
+	display() { // Draw the monster
+		this.displayTrail(); // Draw the trails made thus far
+		super.display(); // Call parent method
+		if (this.ghost != null) this.ghost.display(); // Draw the ghost if it exists
 	}
 
-	display() {
-		super.display();
-		this.displayTrail();
-		if (this.lap == 2 && this.ghost == null) this.createGhost();
-		if (this.ghost != null) this.ghost.display();
-	}
-
-	displayTrail() {
+	displayTrail() { // Draws the monster's path
 		strokeWeight(1.5);
 		stroke(this.r, this.g, this.b, 50);
-		for (let aTrail of this.allTrail) {
+		for (let aTrail of this.allTrail) { // Loops through all the paths made thus far
 			line(aTrail[0].x, aTrail[0].y, aTrail[1].x, aTrail[1].y);
 		}
 	}
 
-	updateVelocity() {
+	move() { // Update the position
+		super.move(); // Call parent method
+		this.currTrail[1].x += this.velocity.x; // Update current path's end x-position
+		this.currTrail[1].y += this.velocity.y; // Update current path's end y-position
+		if (this.ghost != null) this.updateGhost(); // Update ghost's position if exist
+	}
+
+	updateVelocity() { // Update velocity based on the current speed multiplier
 		this.velocity = p5.Vector.mult(this.init_velocity, this.speed);
 	}
 
-	updateSize() {
+	updateSize() { // Update the size based on the current rank
 		this.size = 14 + this.rank;
 		this.width = 4 * this.size;
 		this.height = 3 * this.size;
 	}
 
-	addTrail() {
-		this.currTrail = [this.position.copy(), this.position.copy(), this.velocity.copy().mult(2), this.direction];
-		this.allTrail.push(this.currTrail);
-		++this.lap;
+	// Set up to keep track of a new path
+	addTrail(isLap) { // isLap -> boolean to see if due to lapping off border or from ranking up
+		this.currTrail = [this.position.copy(), // Start position
+						  this.position.copy(), // End position
+						  this.velocity.copy().mult(1.5), // Path velocity
+						  this.direction]; // Path direction
+
+		this.allTrail.push(this.currTrail); // Add into all paths
+		++this.lap; // Increment the times we've looped/repositioned
+
+		// Creates a ghost based on the amount of times looped
+		if (this.lap == 2 && this.ghost == null) this.createGhost();
 	}
 
-	reposition() {
-		this.direction = int(random(0,4));
+	reposition() { // Monster moved out of the window border, so we reposition
+		this.direction = int(random(0,4)); // Pick a random direction to head
 		switch (this.direction) {
-			case 0: // Left Screen
+			case 0: // Left Screen Start (Heading East)
 				this.position.x = 0;
 				this.position.y = random(0, height);
 				this.init_velocity = createVector(random(0,1), random(-1,1));
 				break;
-			case 1: // Top Screen
+			case 1: // Top Screen Start (Heading South)
 				this.position.x = random(0, width);
 				this.position.y = 0;
 				this.init_velocity = createVector(random(-1,1), random(0,1));
 				break;
-			case 2: // Right Screen
+			case 2: // Right Screen Start (Heading West)
 				this.position.x = width;
 				this.position.y = random(0, height);
 				this.init_velocity = createVector(random(-1, 0), random(-1,1));
 				break;
-			case 3: // Bottom Screen
+			case 3: // Bottom Screen Start (Heading North)
 				this.position.x = random(0, width);
 				this.position.y = height;
 				this.init_velocity = createVector(random(-1,1), random(-1,0));
 				break;
 		}
-		this.init_velocity.normalize();
-		this.updateVelocity();
-		this.addTrail();
+		this.init_velocity.normalize(); // Normalize the velocity to standardize it within 1 length
+		this.updateVelocity(); // Update current velocity
+		this.addTrail(true); // Set up for the new path
 	}
 
-	createGhost() {
+	createGhost() { // Creates a the dependant ghost
 		this.ghost = new Ghost(this.allTrail[0][0], this.allTrail[0][2], this.allTrail[0][3], 
 								this.r, this.g, this.b, 0);
+		this.ghost.width = this.width; // Match the width for the ghost
+		this.ghost.height = this.height; // Match the height for the ghost
 	}
 
-	updateGhost() {
-		if (this.ghost.a < 50) ++this.ghost.a;
-		else this.eatTrail();
+	updateGhost() { // Updates the ghost to move if ready
+		if (this.ghost.a < 50) ++this.ghost.a; // See if ghost is ready to move based on alpha value
+		else this.eatTrail(); // Ready to move, ghost starts to eat the trails/paths
 	}
 
-	eatTrail() {
-		this.ghost.walk();
-		if (this.checkTrail()) {
-			if (this.allTrail.length > 1) {
+	eatTrail() { // Ghost eats up the paths created thus far
+		this.ghost.move(); // Moves the ghost
+		if (this.checkTrail()) { // Check if the ghost reached the end of a path
+			if (this.allTrail.length > 1) { // If there are more paths left
+				// Remove the eaten path and head to the next one - updating respective values
 				this.allTrail.shift();
 				this.ghost.position = this.allTrail[0][0];
 				this.ghost.velocity = this.allTrail[0][2];
 				this.ghost.direction = this.allTrail[0][3];
 			}
-			else this.rankUp();
+
+			else this.rankUp(); // the ghost caught up to the real one so we rank up
 		}
 	}
 
-	checkTrail() {
+	checkTrail() { // Returns boolean if the ghost has eaten to the end of a path
 		if (this.ghost.direction == 0) return (this.allTrail[0][0].x > this.allTrail[0][1].x);
 		else if (this.ghost.direction == 1) return (this.allTrail[0][0].y > this.allTrail[0][1].y);
 		else if (this.ghost.direction == 2) return (this.allTrail[0][0].x < this.allTrail[0][1].x);
 		else return (this.allTrail[0][0].y < this.allTrail[0][1].y);
 	}
 
-	rankUp() {
-		this.lap = 0;
-		++this.rank;
-		this.updateSize();
-		if (this.speed > 7) {
-			this.speed -= 0.5;
-			this.updateVelocity;
+	rankUp() { // Rank up the monster & reset everything needed to make another ghost
+		this.lap = 0; // Reset the counter used for the ghost creation
+		++this.rank; // Increment the monster's rank
+		this.updateSize(); // Update the size since rank has been changed
+		if (this.speed > 5) { // Minimum speed of 5
+			this.speed -= 0.5; // Decrement the speed since the monster is bigger
+			this.updateVelocity; // Update the velocity since speed has been changed
 		}
 
-		this.currTrail = [this.position.copy(), this.position.copy(), this.velocity.copy().mult(2), this.direction];
-		this.allTrail.push(this.currTrail);
-
-		delete this.ghost;
-		this.ghost = null;
+		this.ghost = null; // Point to null so garbage collector can delete the ghost
+		this.addTrail(false); // Setup for a new path
 	}
 
-	devour(enemy) {
-		this.rank += enemy.rank;
+	devour(enemy) { // Eat another monster and take their rank
+		this.rank += enemy.rank; // Increment our rank based on the enemy eaten
+		this.updateSize(); // Update the size since rank has been changed
 	}
 }
-
-
-
-// class Monster {
-// 	constructor(position, velocity, direction, r, g, b, a,) {
-// 		this.position = position;
-// 		this.velocity = velocity;
-// 		this.direction = direction;
-// 		this.r = r;
-// 		this.g = g;
-// 		this.b = b;
-// 		this.a = a;
-
-
-// 		this.init_velocity = velocity;
-// 		this.speed = 20;
-// 		this.updateVelocity();
-
-// 		this.rank = 1;
-
-// 		this.timestamp = frameCount;
-// 		this.lap = 0;
-
-// 		this.size = 0;
-// 		this.width = 0;
-// 		this.height = 0;
-// 		this.updateSize();
-
-// 		this.ghost = null;
-
-// 		this.currTrail = [this.position.copy(), this.position.copy(), this.velocity.copy().mult(2), this.direction];
-// 		this.allTrail = [];
-// 		this.allTrail.push(this.currTrail);
-// 	}
-
-// 	updateSize() {
-// 		this.size = 14 + this.rank;
-// 		this.width = 4 * this.size;
-// 		this.height = 3 * this.size;
-// 	}
-
-// 	updateVelocity() {
-// 		this.velocity = p5.Vector.mult(this.init_velocity, this.speed/this.rank);
-// 	}
-
-// 	displayTrail() {
-// 		strokeWeight(1.5);
-// 		stroke(this.r, this.g, this.b, 100);
-// 		for (let aTrail of this.allTrail) {
-// 			// push();
-// 			// translate(aTrail[0], aTrail[1]);
-// 			// rotate(this.velocity.heading());
-
-// 			// let xdiff = (aTrail[2] - aTrail[0])**2;
-// 			// let ydiff = (aTrail[3] - aTrail[1])**2;
-// 			// let d = (xdiff + ydiff)**(1/2);
-// 			// line(0, 0, d, 0);
-// 			// pop();
-// 			line(aTrail[0].x, aTrail[0].y, aTrail[1].x, aTrail[1].y);
-// 		}
-// 	}
-
-// 	display() {
-// 		fill(this.r, this.g, this.b, this.a);
-// 		stroke(0);
-// 		push();
-// 		translate(this.position);
-// 		rotate(this.velocity.heading());
-// 		ellipse(0, 0, this.width, this.height);
-// 		fill(255);
-// 		ellipse(-this.width/5, -this.height/7, this.height/7, this.height/7 * 2.5);
-// 		ellipse(this.width/5, -this.height/7, this.height/7, this.height/7 * 2.5);
-// 		pop();
-
-// 		if (this.title == "real") this.displayTrail();
-// 		if (this.lap == 2 && this.ghost == null) this.createGhost();
-// 		if (this.ghost != null) this.ghost.display();
-// 	}
-
-// 	addTrail() {
-// 		this.currTrail = [this.position.copy(), this.position.copy(), this.velocity.copy().mult(2), this.direction];
-// 		this.allTrail.push(this.currTrail);
-// 		++this.lap;
-// 	}
-
-// 	reposition() {
-// 		this.direction = int(random(0,4));
-// 		switch (this.direction) {
-// 			case 0: // Left Screen
-// 				this.position.x = 0;
-// 				this.position.y = random(0, height);
-// 				this.init_velocity = createVector(random(0,2), random(-2,2));
-// 				break;
-// 			case 1: // Top Screen
-// 				this.position.x = random(0, width);
-// 				this.position.y = 0;
-// 				this.init_velocity = createVector(random(-2,2), random(0,2));
-// 				break;
-// 			case 2: // Right Screen
-// 				this.position.x = width;
-// 				this.position.y = random(0, height);
-// 				this.init_velocity = createVector(random(-2, 0), random(-2,2));
-// 				break;
-// 			case 3: // Bottom Screen
-// 				this.position.x = random(0, width);
-// 				this.position.y = height;
-// 				this.init_velocity = createVector(random(-2,2), random(-2,0));
-// 				break;
-// 		}
-// 		this.init_velocity.normalize();
-// 		this.
-// 		this.addTrail();
-// 	}
-
-// 	createGhost() {
-// 		this.ghost = new Monster(this.allTrail[0][0], this.allTrail[0][2], this.allTrail[0][3], 
-// 								this.r, this.g, this.b, 0);
-// 	}
-
-// 	updateGhost() {
-// 		if (this.ghost.a < 100) ++this.ghost.a;
-// 		else this.eatTrail();
-// 	}
-
-// 	eatTrail() {
-// 		this.ghost.position.add(this.ghost.velocity);
-
-// 		if (this.checkTrail()) {
-// 			console.log(this.ghost.direction);
-// 			if (this.allTrail.length > 1) {
-// 				this.allTrail.shift();
-// 				this.ghost.position = this.allTrail[0][0];
-// 				this.ghost.velocity = this.allTrail[0][2];
-// 				this.ghost.direction = this.allTrail[0][3];
-// 			}
-// 			else this.rankUp();
-// 		}
-// 	}
-
-// 	checkTrail() {
-// 		if (this.ghost.direction == 0) return (this.allTrail[0][0].x > this.allTrail[0][1].x);
-// 		else if (this.ghost.direction == 1) return (this.allTrail[0][0].y > this.allTrail[0][1].y);
-// 		else if (this.ghost.direction == 2) return (this.allTrail[0][0].x < this.allTrail[0][1].x);
-// 		else return (this.allTrail[0][0].y < this.allTrail[0][1].y);
-// 	}
-
-// 	walk() {
-// 		this.position.add(this.velocity);
-// 		this.currTrail[1].x += this.velocity.x;
-// 		this.currTrail[1].y += this.velocity.y;
-// 		if (this.ghost != null) this.updateGhost();
-// 	}
-
-// 	devour(enemy) {
-// 		this.rank += enemy.rank;
-// 	}
-
-// 	rankUp() {
-// 		this.lap = 0;
-// 		this.speed -= 0.5;
-// 		++this.rank;
-// 		this.updateSize();
-
-// 		this.currTrail = [this.position.copy(), this.position.copy(), this.velocity.copy().mult(2), this.direction];
-// 		this.allTrail.push(this.currTrail);
-
-// 		delete this.ghost;
-// 		this.ghost = null;
-// 	}
-// }
