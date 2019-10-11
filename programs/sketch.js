@@ -53,7 +53,7 @@ function moveMonsters() { // Move the monsters & make sure they're within the sc
 								aMonster.stick();
 								break;
 							case 3: // 3: Toxic/Poison
-								aMonster.poision(otherMonster.ID);
+								aMonster.poison(otherMonster.ID);
 								break;
 						}
 					}
@@ -105,7 +105,6 @@ function detectCollision() { // Check for collisions between monsters
 		let other = curr + 1; // Index for the other monster we are checking against
 		while (other < monsters.length) { // Loop through the rest of the monsters to check against
 			let otherMon = monsters[other]; // Pick out the other monster
-
 			// Check if they've collided
 			if (checkCollision(currMon.position, otherMon.position, currMon.width, otherMon.width)) {
 

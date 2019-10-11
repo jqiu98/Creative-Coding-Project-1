@@ -5,17 +5,17 @@ class Monster extends Ghost { // Inheritance from Ghost
 		this.init_velocity = velocity; // The inital velocity to used as a base for actual velocity
 		this.speed = 10; // Multilier for the velocity
 		this.rank = 1; // Level/Rank of the Monster
-		this.trailEffect = int(random(0,10)); // Random innate effect for the trail left behind
+		this.trailEffect = int(random(0,4)); // Random innate effect for the trail left behind
 											 // 0: Nothing
 											 // 1: Sluggy - Slows enemies
 											 // 2: Sticky - Stops enemies
-											 // 3: Toxic/Poision - Decrements rank of enemies
+											 // 3: Toxic/Poison - Decrements rank of enemies
 		this.slowed = false; // Slow afflicted status
 		this.stuck = false; // Stuck afflicted status
 
 		// Two arrays are used below so we only decrement once per path intersect
-		this.currPoisonID = []; // Array to hold all poision paths we are/was on
-		this.newPoisonID = []; // Array to hold all poision paths we are/will be on
+		this.currPoisonID = []; // Array to hold all poison paths we are/was on
+		this.newPoisonID = []; // Array to hold all poison paths we are/will be on
 
 		this.updateVelocity(); // Update the velocity of the monster
 		this.updateSize(); // update the Size of the monster
@@ -74,7 +74,7 @@ class Monster extends Ghost { // Inheritance from Ghost
 	}
 
 	move() { // Update the position
-		this.checkPoison(); // Check for poision status
+		if (this.trailEffect != 3) this.checkPoison(); // Check for poison status
 		if (!this.stuck) { // Not afflicted with stuck status
 			super.move(); // Call parent method
 			this.currTrail[1].x += this.velocity.x; // Update current path's end x-position
@@ -94,30 +94,30 @@ class Monster extends Ghost { // Inheritance from Ghost
 	}
 
 
-	poision(ID) { // Add the ID of a poison path we are currently on
-		this.newPoisonID.push(ID);
+	poison(ID) { // Add the ID of a poison path we are currently on
+		if (this.trailEffect != 3) this.newPoisonID.push(ID);
 	}
 
-	checkPoison() { // Checking if we got poisioned and updating accordingly
-		if (this.newPoisonID.length > 0) { // If we are poisioned
-			let i = 0; // Previously poisioned index
-			let j = 0; // Currently poisioned index
+	checkPoison() { // Checking if we got poisoned and updating accordingly
+		if (this.newPoisonID.length > 0) { // If we are poisoned
+			let i = 0; // Previously poisoned index
+			let j = 0; // Currently poisoned index
 			while (i < this.currPoisonID.length && j < this.newPoisonID.length) {
 				if (this.currPoisonID[i] == this.newPoisonID[j]) { // Currently posioning so don't count it again
 					++i;
-					++j;
+					this.newPoisonID.shift();
 				}
-				else if (this.currPoisonID[i] < this.newPoisonID[j]) this.currPoisonID.shift(); // No longer on that poisioned path
+				else if (this.currPoisonID[i] < this.newPoisonID[j]) this.currPoisonID.shift(); // No longer on that poisoned path
 				else ++j;
 				}
-			// Go back through the corrected new poisioning IDs and updating accordingly
+			// Go back through the corrected new poisoning IDs and updating accordingly
 			j = 0;
 			while (j < this.newPoisonID.length) {
 				this.currPoisonID.push(this.newPoisonID[j++]);
 				this.rankDown();
 			}
 		}
-		else this.currPoisonID = []; // Not on any poisioned paths anymore
+		else this.currPoisonID = []; // Not on any poisoned paths anymore
 	}
 
 	rankDown() { // Decrements rank accordingly
@@ -128,7 +128,7 @@ class Monster extends Ghost { // Inheritance from Ghost
 	}
 
 	slow() { // Update the slowed status
-		if (!this.slowed) { // If not already afflicted, update accordingly
+		if (this.trailEffect!= 1 && !this.slowed) { // If not already afflicted, update accordingly
 			this.slowed = true;
 			this.speed /= 2;
 			this.updateVelocity(); // Update the velocity since speed was changed
@@ -136,7 +136,7 @@ class Monster extends Ghost { // Inheritance from Ghost
 	}
 
 	stick() { // Update the stuck status
-		this.stuck = true;
+		if (this.trailEffect != 2) this.stuck = true;
 	}
 
 	clearStatus() { // Clears all status afflictions and reset for the next draw loop
@@ -146,7 +146,7 @@ class Monster extends Ghost { // Inheritance from Ghost
 			this.updateVelocity();
 		}
 		if (this.stuck) this.stuck = false;
-		this.newPoisonID = [];
+		if (this.trailEffect != 3) this.newPoisonID = [];
 	}
 
 	// Set up to keep track of a new path
