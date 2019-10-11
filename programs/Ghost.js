@@ -15,6 +15,7 @@ class Ghost {
 	display() { // Draw on screen
 		fill(this.r, this.g, this.b, this.a);
 		stroke(0);
+		strokeWeight(1.5);
 		push();
 		translate(this.position); // Translate to the position in order to rotate in place
 		rotate(this.velocity.heading()); // Rotate based on the velocity (basically direction)

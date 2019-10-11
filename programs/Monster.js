@@ -1,10 +1,21 @@
 class Monster extends Ghost { // Inheritance from Ghost
-	constructor(position, velocity, direction, r, g, b, a) {
+	constructor(ID, position, velocity, direction, r, g, b, a) {
 		super(position, velocity, direction, r, g, b, a); // Calls parent constructor
-
+		this.ID = ID;
 		this.init_velocity = velocity; // The inital velocity to used as a base for actual velocity
 		this.speed = 10; // Multilier for the velocity
 		this.rank = 1; // Level/Rank of the Monster
+		this.trailEffect = int(random(0,10)); // Random innate effect for the trail left behind
+											 // 0: Nothing
+											 // 1: Sluggy - Slows enemies
+											 // 2: Sticky - Stops enemies
+											 // 3: Toxic/Poision - Decrements rank of enemies
+		this.slowed = false; // Slow afflicted status
+		this.stuck = false; // Stuck afflicted status
+
+		// Two arrays are used below so we only decrement once per path intersect
+		this.currPoisonID = []; // Array to hold all poision paths we are/was on
+		this.newPoisonID = []; // Array to hold all poision paths we are/will be on
 
 		this.updateVelocity(); // Update the velocity of the monster
 		this.updateSize(); // update the Size of the monster
@@ -30,17 +41,45 @@ class Monster extends Ghost { // Inheritance from Ghost
 	}
 
 	displayTrail() { // Draws the monster's path
-		strokeWeight(1.5);
-		stroke(this.r, this.g, this.b, 50);
+		let statusColor = color(240);
+		switch (this.trailEffect) {
+			case 1:
+				statusColor = color(51, 48, 47, 30);
+				break;
+			case 2:
+				statusColor = color(212, 155, 0, 30);
+				break;
+			case 3:
+				statusColor = color(4, 186, 7, 30);
+				break;
+		}
 		for (let aTrail of this.allTrail) { // Loops through all the paths made thus far
-			line(aTrail[0].x, aTrail[0].y, aTrail[1].x, aTrail[1].y);
+			push();
+			translate(aTrail[0].x, aTrail[0].y);
+			rotate(aTrail[2].heading());
+
+
+			let dist = aTrail[0].dist(aTrail[1]);
+
+			strokeWeight(3);
+			stroke(statusColor);
+			line(0, -3, dist, -3);
+			line(0, 3, dist, 3);
+
+			strokeWeight(3);
+			stroke(this.r, this.g, this.b, 50);
+			line(0, 0, dist, 0);
+			pop();
 		}
 	}
 
 	move() { // Update the position
-		super.move(); // Call parent method
-		this.currTrail[1].x += this.velocity.x; // Update current path's end x-position
-		this.currTrail[1].y += this.velocity.y; // Update current path's end y-position
+		this.checkPoison(); // Check for poision status
+		if (!this.stuck) { // Not afflicted with stuck status
+			super.move(); // Call parent method
+			this.currTrail[1].x += this.velocity.x; // Update current path's end x-position
+			this.currTrail[1].y += this.velocity.y; // Update current path's end y-position
+		}
 		if (this.ghost != null) this.updateGhost(); // Update ghost's position if exist
 	}
 
@@ -54,6 +93,62 @@ class Monster extends Ghost { // Inheritance from Ghost
 		this.height = 3 * this.size;
 	}
 
+
+	poision(ID) { // Add the ID of a poison path we are currently on
+		this.newPoisonID.push(ID);
+	}
+
+	checkPoison() { // Checking if we got poisioned and updating accordingly
+		if (this.newPoisonID.length > 0) { // If we are poisioned
+			let i = 0; // Previously poisioned index
+			let j = 0; // Currently poisioned index
+			while (i < this.currPoisonID.length && j < this.newPoisonID.length) {
+				if (this.currPoisonID[i] == this.newPoisonID[j]) { // Currently posioning so don't count it again
+					++i;
+					++j;
+				}
+				else if (this.currPoisonID[i] < this.newPoisonID[j]) this.currPoisonID.shift(); // No longer on that poisioned path
+				else ++j;
+				}
+			// Go back through the corrected new poisioning IDs and updating accordingly
+			j = 0;
+			while (j < this.newPoisonID.length) {
+				this.currPoisonID.push(this.newPoisonID[j++]);
+				this.rankDown();
+			}
+		}
+		else this.currPoisonID = []; // Not on any poisioned paths anymore
+	}
+
+	rankDown() { // Decrements rank accordingly
+		if (this.rank > 1) { // Cannot go lower than rank 1
+			--this.rank;
+			this.updateSize; // Update size since rank was changed
+		}
+	}
+
+	slow() { // Update the slowed status
+		if (!this.slowed) { // If not already afflicted, update accordingly
+			this.slowed = true;
+			this.speed /= 2;
+			this.updateVelocity(); // Update the velocity since speed was changed
+		}
+	}
+
+	stick() { // Update the stuck status
+		this.stuck = true;
+	}
+
+	clearStatus() { // Clears all status afflictions and reset for the next draw loop
+		if (this.slowed) {
+			this.slowed = false;
+			this.speed *= 2;
+			this.updateVelocity();
+		}
+		if (this.stuck) this.stuck = false;
+		this.newPoisonID = [];
+	}
+
 	// Set up to keep track of a new path
 	addTrail(isLap) { // isLap -> boolean to see if due to lapping off border or from ranking up
 		this.currTrail = [this.position.copy(), // Start position
@@ -62,7 +157,8 @@ class Monster extends Ghost { // Inheritance from Ghost
 						  this.direction]; // Path direction
 
 		this.allTrail.push(this.currTrail); // Add into all paths
-		++this.lap; // Increment the times we've looped/repositioned
+		
+		if (isLap) ++this.lap; // Increment the times we've looped/repositioned
 
 		// Creates a ghost based on the amount of times looped
 		if (this.lap == 2 && this.ghost == null) this.createGhost();

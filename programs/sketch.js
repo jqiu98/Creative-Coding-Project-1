@@ -1,6 +1,7 @@
 // GLOBALS
 let pause; // flag to toggle screen pause
 let monsters; // Array of monsters created
+let ID; // Generate unique ID for all monsters
 
 // These are variables first declared so we aren't redeclaring them multiple times as 
 // they are used quite often
@@ -11,11 +12,12 @@ let aMonster; // For the creation of a Monster class
 
 
 function setup() {
-	createCanvas(displayWidth, displayHeight);
-	background(220);
+	createCanvas(windowWidth, windowHeight);
+	background(240);
 	frameRate(60);
 	pause = false; // Initialize pause to false
 	monsters = []; // Initialize the array of Monsters
+	ID = 0;
 }
 
 function draw() {
@@ -39,7 +41,27 @@ function mousePressed() {
 
 function moveMonsters() { // Move the monsters & make sure they're within the screen
 	for (let aMonster of monsters) {
+		for (let otherMonster of monsters) {
+			if (aMonster != otherMonster) {
+				for (let aTrail of otherMonster.allTrail) { // Going through all the paths
+					if (circleLineCollision(aTrail[0], aTrail[1], aMonster.position, aMonster.width/2)) {
+						switch (otherMonster.trailEffect) {
+							case 1: // 1: Sluggy
+								aMonster.slow();
+								break;
+							case 2: // 2: Sticky
+								aMonster.stick();
+								break;
+							case 3: // 3: Toxic/Poison
+								aMonster.poision(otherMonster.ID);
+								break;
+						}
+					}
+				}
+			}
+		}
 		aMonster.move();
+		aMonster.clearStatus();
 
 		// Check if they've gone off screen
 		if (aMonster.position.x > width + aMonster.width/2 || 
@@ -50,6 +72,21 @@ function moveMonsters() { // Move the monsters & make sure they're within the sc
 			aMonster.reposition(); // Reposition them if they've gone off screen
 		}
 	}
+}
+
+function circleLineCollision(p1, p2, pCheck, radius) {
+	let slopeVec = p5.Vector.sub(p2, p1); // Slope formula via vectors
+	let m = slopeVec.y / slopeVec.x; // Finding slope: y = mx + b
+	let b = p1.y - p1.x * m; // Finding y-interect: y = mx + b
+
+	// Change y = mx +b into standard form Ax + By + C = 0 and calculate for A, B, C
+	let A = -slopeVec.y;
+	let B = slopeVec.x; 
+	let C = -slopeVec.x * b;
+
+	// Use point-line distance formula
+	let dist = abs(A*pCheck.x + B*pCheck.y + C) / sqrt(A**2 + B**2) // distance to nearest point on line
+	return dist < radius; // See if there is circle-line collision
 }
 
 function displayMonsters() { // Draw the monsters
@@ -107,7 +144,7 @@ function createMonster(x, y) { // Create a monster based on location x, y
 	g = random(0, 255);
 	b = random(0, 255);
 	genVelocity(); // Generate a random velocity & direction
-	aMonster = new Monster(createVector(x, y), velocity, direction, r, g, b, 255); // Create the monster
+	aMonster = new Monster(ID++, createVector(x, y), velocity, direction, r, g, b, 255); // Create the monster
 	monsters.push(aMonster); // Add it to the global array
 }
 
