@@ -31,14 +31,6 @@ function draw() {
 	displayMonsters(); // Draw the monsters and basically the entire state
 }
 
-function keyPressed() {
-	if (key == ' ') pause = !pause; // Toggle the pause flag on or off
-}
-
-function mousePressed() {
-	createMonster(mouseX, mouseY); // Creates a monster based on the mouse position
-}
-
 function moveMonsters() { // Move the monsters & make sure they're within the screen
 	for (let aMonster of monsters) {
 		for (let otherMonster of monsters) {
